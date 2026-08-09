@@ -1,6 +1,7 @@
 const mineflayer = require("mineflayer");
 const express = require("express");
 const fs = require("fs");
+const axios = require("axios");
 
 // KEEP ALIVE
 const app = express();
@@ -12,6 +13,7 @@ const config = JSON.parse(fs.readFileSync("./config.json"));
 
 let bot;
 let afkTask;
+let ostatnieZapytanie = 0;
 
 function startBot() {
   console.log("🚀 Łączenie z serwerem...");
@@ -27,12 +29,10 @@ function startBot() {
   bot.once("spawn", () => {
     console.log("✅ Bot wszedł na serwer");
 
-    // LOGIN AUTHME
     setTimeout(() => {
       bot.chat(`/login ${config.password}`);
     }, config.loginDelay);
 
-    // ANTI-AFK
     afkTask = setInterval(() => {
       bot.setControlState("jump", true);
       setTimeout(() => {
@@ -49,11 +49,53 @@ function startBot() {
     }
   });
 
+  // === GROQ AI ===
+  bot.on("chat", async (username, message) => {
+    if (username === bot.username) return;
+    if (!message.startsWith("!ai ")) return;
+
+    const teraz = Date.now();
+    if (teraz - ostatnieZapytanie < 8000) {
+      bot.chat("Poczekaj chwilę zanim znów spytasz AI ⏳");
+      return;
+    }
+    ostatnieZapytanie = teraz;
+
+    const pytanie = message.slice(4).trim();
+    if (!pytanie) return;
+
+    try {
+      const res = await axios.post(
+        "https://api.groq.com/openai/v1/chat/completions",
+        {
+          model: "llama-3.3-70b-versatile",
+          messages: [
+            {
+              role: "system",
+              content:
+                "Jesteś pomocnym botem na serwerze Minecraft. Odpowiadasz krótko i konkretnie po polsku, np. na pytania o receptury craftingowe."
+            },
+            { role: "user", content: pytanie }
+          ]
+        },
+        { headers: { Authorization: `Bearer ${process.env.GROQ_API_KEY}` } }
+      );
+
+      const odpowiedz = res.data.choices[0].message.content;
+      wyslijDlugaWiadomosc(odpowiedz);
+    } catch (err) {
+      bot.chat("⚠️ Błąd AI: " + err.message);
+    }
+  });
+
+  function wyslijDlugaWiadomosc(text) {
+    const chunks = text.match(/.{1,240}(\s|$)/g) || [text];
+    chunks.forEach((c, i) => setTimeout(() => bot.chat(c.trim()), i * 700));
+  }
+
   // RECONNECT
   bot.on("end", () => {
-    console.log(
-      `🔄 Rozłączono – reconnect za ${config.reconnectDelay / 1000}s`
-    );
+    console.log(`🔄 Rozłączono – reconnect za ${config.reconnectDelay / 1000}s`);
     if (afkTask) clearInterval(afkTask);
     setTimeout(startBot, config.reconnectDelay);
   });
