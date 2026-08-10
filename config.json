@@ -1,8 +1,8 @@
 {
-  "host": "anarch-1aa.aternos.me:53800",
-  "port": 53800,
-  "username": "RageKacperek",
-  "password": "haslo123",
+  "host": "DerZentralserver.aternos.me:56740",
+  "port": 56740,
+  "username": "Grok",
+  "password": "GrokAi123",
   "version": "1.21.1",
 
   "loginDelay": 4000,
