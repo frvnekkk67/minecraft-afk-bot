@@ -6,6 +6,6 @@
   "version": "1.21.1",
 
   "loginDelay": 4000,
-  "reconnectDelay": 15000,
+  "reconnectDelay": 15021,
   "afkInterval": 30000
 }
