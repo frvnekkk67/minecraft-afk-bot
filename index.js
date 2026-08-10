@@ -73,7 +73,7 @@ function startBot() {
             {
               role: "system",
               content:
-                "Jesteś pomocnym botem na serwerze Minecraft. Odpowiadasz krótko i konkretnie po polsku, np. na pytania o receptury craftingowe."
+                "Jesteś pomocnym botem na serwerze Minecraft 26.2 aternos. Odpowiadasz krótko i zartobliwie, np. na pytania o receptury craftingowe, lub na pytania o swiecie."
             },
             { role: "user", content: pytanie }
           ]
