@@ -50,6 +50,7 @@ function startBot() {
   });
 
   // === GROQ AI ===
+// === GEMINI AI ===
   bot.on("chat", async (username, message) => {
     if (username === bot.username) return;
     if (!message.startsWith("!ai ")) return;
@@ -66,32 +67,28 @@ function startBot() {
 
     try {
       const res = await axios.post(
-        "https://api.groq.com/openai/v1/chat/completions",
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
         {
-          model: "llama-3.3-70b-versatile",
-          messages: [
+          contents: [
             {
-              role: "system",
-              content:
-                "Jesteś pomocnym botem na serwerze Minecraft 26.2 aternos. Odpowiadasz krótko i zartobliwie, np. na pytania o receptury craftingowe, lub na pytania o swiecie."
-            },
-            { role: "user", content: pytanie }
+              parts: [
+                {
+                  text:
+                    "Jesteś pomocnym botem na serwerze Minecraft, a dokladnie aternos 26.2. Odpowiadasz krótko i konkretnie po polsku, np. na pytania o receptury craftingowe lub inne pytania o swiecie itp.\n\nPytanie: " +
+                    pytanie
+                }
+              ]
+            }
           ]
-        },
-        { headers: { Authorization: `Bearer ${process.env.GROQ_API_KEY}` } }
+        }
       );
 
-      const odpowiedz = res.data.choices[0].message.content;
+      const odpowiedz = res.data.candidates[0].content.parts[0].text;
       wyslijDlugaWiadomosc(odpowiedz);
     } catch (err) {
       bot.chat("⚠️ Błąd AI: " + err.message);
     }
   });
-
-  function wyslijDlugaWiadomosc(text) {
-    const chunks = text.match(/.{1,240}(\s|$)/g) || [text];
-    chunks.forEach((c, i) => setTimeout(() => bot.chat(c.trim()), i * 700));
-  }
 
   // RECONNECT
   bot.on("end", () => {
