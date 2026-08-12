@@ -49,8 +49,12 @@ function startBot() {
     }
   });
 
-  // === GROQ AI ===
-// === GEMINI AI ===
+  function wyslijDlugaWiadomosc(text) {
+    const chunks = text.match(/.{1,240}(\s|$)/g) || [text];
+    chunks.forEach((c, i) => setTimeout(() => bot.chat(c.trim()), i * 700));
+  }
+
+  // === GEMINI AI ===
   bot.on("chat", async (username, message) => {
     if (username === bot.username) return;
     if (!message.startsWith("!ai ")) return;
@@ -66,22 +70,36 @@ function startBot() {
     if (!pytanie) return;
 
     try {
-      const res = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-        {
-          contents: [
+      let res;
+      let proby = 0;
+      while (proby < 3) {
+        try {
+          res = await axios.post(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
             {
-              parts: [
+              contents: [
                 {
-                  text:
-                    "Jesteś pomocnym botem na serwerze Minecraft, a dokladnie aternos 26.2. Odpowiadasz krótko i konkretnie po polsku, np. na pytania o receptury craftingowe lub inne pytania o swiecie itp.\n\nPytanie: " +
-                    pytanie
+                  parts: [
+                    {
+                      text:
+                        "Jesteś pomocnym botem na serwerze Minecraft. Odpowiadasz krótko i konkretnie po polsku, np. na pytania o receptury craftingowe.\n\nPytanie: " +
+                        pytanie
+                    }
+                  ]
                 }
               ]
             }
-          ]
+          );
+          break;
+        } catch (e) {
+          if (e.response?.status === 503 && proby < 2) {
+            proby++;
+            await new Promise((r) => setTimeout(r, 1500));
+          } else {
+            throw e;
+          }
         }
-      );
+      }
 
       const odpowiedz = res.data.candidates[0].content.parts[0].text;
       wyslijDlugaWiadomosc(odpowiedz);
